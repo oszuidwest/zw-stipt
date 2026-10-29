@@ -1,0 +1,10 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - src
+        - zw-stipt.php
+        - uninstall.php
+    tmpDir: .phpstan-cache

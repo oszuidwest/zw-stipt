@@ -1,0 +1,22 @@
+---
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Release even if the version was not bumped'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    uses: oszuidwest/.github-templates/.github/workflows/wp-release.yml@v3
+    with:
+      plugin-slug: zw-stipt
+      force: ${{ inputs.force }}
+    permissions:
+      contents: write
