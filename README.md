@@ -30,7 +30,7 @@ There are no settings.
 The plugin logs to `zw-logs/zw-stipt.log`, one directory above the WordPress root. Each line has a timestamp, the event and the details as JSON.
 
 - `event_restored`: a publish event was put back before saving
-- `missed_post_published`: the fallback published an overdue post, `result` has the status afterwards
+- `missed_post_rescheduled`: the fallback gave an overdue post a new publish event
 
 The file is moved to `zw-stipt.log.1` when it grows past 5 MB. To log somewhere else, set this in `wp-config.php`:
 
