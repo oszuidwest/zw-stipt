@@ -24,9 +24,8 @@ final class Log
     public static function write(string $event, array $data): void
     {
         $file = defined('ZW_STIPT_LOG') ? (string) constant('ZW_STIPT_LOG') : dirname(ABSPATH) . '/zw-logs/zw-stipt.log';
-        if (!is_dir(dirname($file)) && !wp_mkdir_p(dirname($file))) {
-            return;
-        }
+        // The write below is tried even if this fails, and falls back to the PHP error log.
+        wp_mkdir_p(dirname($file));
 
         if (is_file($file) && (int) filesize($file) > self::MAX_BYTES) {
             @rename($file, $file . '.1');
@@ -47,6 +46,8 @@ final class Log
         ];
 
         $line = wp_date('Y-m-d H:i:s') . ' ' . $event . ' ' . wp_json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
-        @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        if (@file_put_contents($file, $line, FILE_APPEND | LOCK_EX) === false) {
+            error_log('zw-stipt: ' . rtrim($line)); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Keep the event when the log file is not writable.
+        }
     }
 }

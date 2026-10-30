@@ -24,7 +24,7 @@ if (is_string($zw_stipt_tests_config) && $zw_stipt_tests_config !== '') {
     }
 }
 
-define('ZW_STIPT_LOG', sys_get_temp_dir() . '/zw-stipt-tests.log');
+define('ZW_STIPT_LOG', sys_get_temp_dir() . '/zw-stipt-tests/zw-stipt.log');
 
 require_once $zw_stipt_tests_dir . '/includes/functions.php';
 
