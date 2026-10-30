@@ -32,10 +32,11 @@ final class SweepTest extends \WP_UnitTestCase
         $this->assertSame('future', get_post_status($id));
     }
 
-    public function test_does_not_run_on_front_end_requests(): void
+    public function test_does_not_run_on_admin_requests(): void
     {
         $id = $this->futurePostDue(-Sweep::GRACE - 60);
         add_filter('wp_doing_cron', '__return_false');
+        set_current_screen('dashboard');
 
         Sweep::maybeRun();
 

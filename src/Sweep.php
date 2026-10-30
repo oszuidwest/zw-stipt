@@ -11,7 +11,7 @@ namespace ZWStipt;
 
 /**
  * Backstop that does not depend on the cron option: it reads overdue `future` posts from the posts table and
- * publishes them. Runs at most once a minute, in cron and admin requests.
+ * publishes them. Runs at most once a minute, in cron requests.
  */
 final class Sweep
 {
@@ -31,7 +31,7 @@ final class Sweep
      */
     public static function maybeRun(): void
     {
-        if ((wp_doing_cron() || is_admin()) && self::claim()) {
+        if (wp_doing_cron() && self::claim()) {
             self::run();
         }
     }

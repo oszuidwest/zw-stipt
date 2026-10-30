@@ -8,7 +8,7 @@ WordPress keeps all cron events in one option. A cron run that started before an
 
 When the cron option is saved, the plugin compares it with the database. A `publish_future_post` event that is in the database, but that the writer never saw, is put back. Other events are left alone.
 
-As a fallback it publishes posts that are still scheduled 60 seconds or more after their publish time. This runs at most once a minute, on cron and wp-admin requests.
+As a fallback it publishes posts that are still scheduled 60 seconds or more after their publish time. This runs at most once a minute, on cron requests.
 
 The first check reads the database just before WordPress writes, so a write in between can still slip through. The fallback catches those. It also can't see cron writes made before the plugin itself has loaded.
 
