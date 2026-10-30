@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       ZuidWest Stipt
  * Plugin URI:        https://github.com/oszuidwest/zw-stipt
- * Description:       Keeps scheduled posts from ending up as "Missed schedule": restores publish events lost to stale cron writes and publishes overdue posts.
- * Version:           0.0.1
+ * Description:       Keeps scheduled posts from ending up as "Missed schedule": restores publish events lost to stale cron writes and gives overdue posts a new publish event.
+ * Version:           0.0.2
  * Requires at least: 7.1
  * Requires PHP:      8.4
  * Author:            Streekomroep ZuidWest
