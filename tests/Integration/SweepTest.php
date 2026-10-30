@@ -14,13 +14,14 @@ final class SweepTest extends \WP_UnitTestCase
         add_filter('wp_doing_cron', '__return_true');
     }
 
-    public function test_publishes_an_overdue_post_without_event(): void
+    public function test_reschedules_an_overdue_post_without_event(): void
     {
         $id = $this->futurePostDue(-Sweep::GRACE - 60);
 
         Sweep::maybeRun();
 
-        $this->assertSame('publish', get_post_status($id));
+        $this->assertSame('future', get_post_status($id));
+        $this->assertEqualsWithDelta(time(), wp_next_scheduled('publish_future_post', [$id]), 5);
     }
 
     public function test_leaves_a_post_within_the_grace_period_to_core(): void
@@ -29,7 +30,7 @@ final class SweepTest extends \WP_UnitTestCase
 
         Sweep::maybeRun();
 
-        $this->assertSame('future', get_post_status($id));
+        $this->assertFalse(wp_next_scheduled('publish_future_post', [$id]));
     }
 
     public function test_does_not_run_on_admin_requests(): void
@@ -40,7 +41,7 @@ final class SweepTest extends \WP_UnitTestCase
 
         Sweep::maybeRun();
 
-        $this->assertSame('future', get_post_status($id));
+        $this->assertFalse(wp_next_scheduled('publish_future_post', [$id]));
     }
 
     public function test_skips_when_another_request_swept_this_interval(): void
@@ -50,7 +51,7 @@ final class SweepTest extends \WP_UnitTestCase
 
         Sweep::maybeRun();
 
-        $this->assertSame('future', get_post_status($id));
+        $this->assertFalse(wp_next_scheduled('publish_future_post', [$id]));
     }
 
     /** Create a scheduled post, then move its date without rescheduling, as if its event was lost. */
