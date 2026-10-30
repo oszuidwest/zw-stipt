@@ -10,8 +10,8 @@ declare(strict_types=1);
 namespace ZWStipt;
 
 /**
- * Backstop that does not depend on the cron option: it reads overdue `future` posts from the posts table and
- * publishes them. Runs at most once a minute, in cron requests.
+ * Backstop that finds posts without relying on the cron option: it reads overdue `future` posts from the posts table
+ * and schedules a publish event for them, so core publishes them. Runs at most once a minute, in cron requests.
  */
 final class Sweep
 {
@@ -61,7 +61,7 @@ final class Sweep
     }
 
     /**
-     * Publish overdue posts and log each one.
+     * Schedule a publish event for overdue posts that lost theirs, and log each one.
      */
     private static function run(): void
     {
@@ -79,23 +79,21 @@ final class Sweep
                 continue;
             }
 
-            $next = wp_next_scheduled(EventGuard::HOOK, [$id]);
             $context = [
                 'post_id'       => $id,
                 'post_type'     => $post->post_type,
                 'title'         => wp_html_excerpt($post->post_title, 80),
                 'post_date'     => $post->post_date,
                 'overdue_s'     => time() - (int) strtotime($post->post_date_gmt . ' GMT'),
-                'cron_event'    => $next ? wp_date('Y-m-d H:i:s', $next) : 'missing',
                 'last_modified' => $post->post_modified,
                 'edit_last'     => (int) get_post_meta($id, '_edit_last', true),
             ];
 
-            check_and_publish_future_post($id);
-
-            clean_post_cache($id);
-            $context['result'] = get_post_status($id);
-            Log::write('missed_post_published', $context);
+            // Publishing here could race a cron run that already took the event, so leave that to core's cron.
+            // Core refuses this when the post already has an event that is due or due within 10 minutes.
+            if (wp_schedule_single_event(time(), EventGuard::HOOK, [$id])) {
+                Log::write('missed_post_rescheduled', $context);
+            }
         }
     }
 }
