@@ -18,7 +18,7 @@ final class SweepTest extends \WP_UnitTestCase
     {
         $id = $this->futurePostDue(-Sweep::GRACE - 60);
 
-        Sweep::maybeRun();
+        do_action('init');
 
         $this->assertSame('future', get_post_status($id));
         $this->assertEqualsWithDelta(time(), wp_next_scheduled('publish_future_post', [$id]), 5);
