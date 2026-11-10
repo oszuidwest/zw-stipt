@@ -11,7 +11,7 @@
         "test:php": "wp-env run cli --env-cwd=wp-content/plugins/zw-stipt vendor/bin/phpunit"
     },
     "devDependencies": {
-        "@wordpress/env": "^12.0.0"
+        "@wordpress/env": "^12.1.0"
     },
     "overrides": {
         "isomorphic-git": "^1.38.6",
