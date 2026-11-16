@@ -13,19 +13,38 @@ final class EventGuardTest extends \WP_UnitTestCase
         _set_cron_array([]);
     }
 
-    public function test_restores_publish_event_added_by_another_request(): void
+    public function test_restores_publish_events_added_by_another_request(): void
     {
-        $postId = $this->scheduledElsewhere();
+        $first = $this->scheduledElsewhere();
+        $second = $this->scheduledElsewhere();
         $time = time() + HOUR_IN_SECONDS;
-        $this->writeElsewhere($this->withPublishEvent(_get_cron_array(), $time, $postId));
+        $this->writeElsewhere($this->withPublishEvent($this->withPublishEvent(_get_cron_array(), $time, $first), $time, $second));
+        wp_delete_file(ZW_STIPT_LOG);
 
         wp_schedule_single_event(time() + DAY_IN_SECONDS, 'zw_stipt_test_other');
 
-        $this->assertSame($time, $this->timeInDb(EventGuard::HOOK, [$postId]));
+        $this->assertSame($time, $this->timeInDb(EventGuard::HOOK, [$first]));
+        $this->assertSame($time, $this->timeInDb(EventGuard::HOOK, [$second]));
+        $this->assertStringContainsString('event_restored {"post_id":' . $second . ',', (string) file_get_contents(ZW_STIPT_LOG));
         $timestamps = array_filter(array_keys($this->cronInDb()), 'is_int');
         $sorted = $timestamps;
         sort($sorted);
         $this->assertSame($sorted, $timestamps, 'wp-cron.php needs timestamps in order');
+    }
+
+    public function test_restores_event_of_post_rescheduled_by_another_request(): void
+    {
+        $postId = $this->scheduledElsewhere();
+        $old = time() + HOUR_IN_SECONDS;
+        $new = $old + HOUR_IN_SECONDS;
+        wp_schedule_single_event($old, EventGuard::HOOK, [$postId]);
+        $cron = _get_cron_array();
+        unset($cron[$old]);
+        $this->writeElsewhere($this->withPublishEvent($cron, $new, $postId));
+
+        wp_schedule_single_event(time() + DAY_IN_SECONDS, 'zw_stipt_test_other');
+
+        $this->assertArrayHasKey(md5(serialize([$postId])), $this->cronInDb()[$new][EventGuard::HOOK] ?? []);
     }
 
     /** @dataProvider unscheduledStatuses */
@@ -61,6 +80,8 @@ final class EventGuardTest extends \WP_UnitTestCase
 
     public function test_does_not_turn_a_no_op_into_a_stale_write(): void
     {
+        // get_option() unserializes a fresh copy, so with object args the write is equal but not identical.
+        wp_schedule_single_event(time() + WEEK_IN_SECONDS, 'zw_stipt_test_object', [new \stdClass()]);
         $cron = $this->withPublishEvent(_get_cron_array(), time() + HOUR_IN_SECONDS, $this->scheduledElsewhere());
         $cron[time() + DAY_IN_SECONDS]['zw_stipt_test_other'][md5(serialize([]))] = ['schedule' => false, 'args' => []];
         $this->writeElsewhere($cron);
@@ -68,6 +89,15 @@ final class EventGuardTest extends \WP_UnitTestCase
         wp_unschedule_event(time() + WEEK_IN_SECONDS, 'zw_stipt_test_missing');
 
         $this->assertNotNull($this->timeInDb('zw_stipt_test_other', []));
+    }
+
+    public function test_leaves_a_non_array_write_alone(): void
+    {
+        $this->writeElsewhere($this->withPublishEvent(_get_cron_array(), time() + HOUR_IN_SECONDS, $this->scheduledElsewhere()));
+
+        update_option('cron', '');
+
+        $this->assertSame('', get_option('cron'));
     }
 
     /**
