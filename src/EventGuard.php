@@ -15,7 +15,8 @@ namespace ZWStipt;
  * end up as "Missed schedule".
  *
  * Before each write this compares the database with the writer's copy. A publish_future_post event that is in the
- * database but in neither the writer's old nor new value was never seen by the writer, so it is put back.
+ * database but in neither the writer's old nor new value was never seen by the writer, so it is put back if its post
+ * is still scheduled.
  * This narrows the race to the moment between this read and core's UPDATE; Sweep covers what remains.
  */
 final class EventGuard
@@ -50,11 +51,16 @@ final class EventGuard
         }
 
         foreach ($lost as [$timestamp, $key, $event]) {
+            $postId = (int) ($event['args'][0] ?? 0);
+            // Core skips the event once the post is no longer scheduled, so there is nothing to restore.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Must bypass this request's post cache.
+            if ($wpdb->get_var($wpdb->prepare("SELECT post_status FROM {$wpdb->posts} WHERE ID = %d", $postId)) !== 'future') {
+                continue;
+            }
             $value[$timestamp][self::HOOK][$key] = $event;
             Log::write('event_restored', [
-                'post_id'     => (int) ($event['args'][0] ?? 0),
-                'post_status' => get_post_status((int) ($event['args'][0] ?? 0)),
-                'event_time'  => wp_date('Y-m-d H:i:s', (int) $timestamp),
+                'post_id'    => $postId,
+                'event_time' => wp_date('Y-m-d H:i:s', (int) $timestamp),
             ]);
         }
 
